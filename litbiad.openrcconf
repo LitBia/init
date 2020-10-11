@@ -1,0 +1,33 @@
+# /etc/conf.d/litbiad: config file for /etc/init.d/litbiad
+
+# Config file location
+#LITBIAD_CONFIGFILE="/etc/litbia/litbia.conf"
+
+# What directory to write pidfile to?  (created and owned by $LITBIAD_USER)
+#LITBIAD_PIDDIR="/var/run/litbiad"
+
+# What filename to give the pidfile
+#LITBIAD_PIDFILE="${LITBIAD_PIDDIR}/litbiad.pid"
+
+# Where to write litbiad data (be mindful that the blockchain is large)
+#LITBIAD_DATADIR="/var/lib/litbiad"
+
+# User and group to own litbiad process
+#LITBIAD_USER="litbia"
+#LITBIAD_GROUP="litbia"
+
+# Path to litbiad executable
+#LITBIAD_BIN="/usr/bin/litbiad"
+
+# Nice value to run litbiad under
+#LITBIAD_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#LITBIAD_OPTS=""
+
+# The timeout in seconds OpenRC will wait for litbiad to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+LITBIAD_SIGTERM_TIMEOUT=60

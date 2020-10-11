@@ -1,0 +1,92 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/litbia/.litbia" ]; then
+	LITBIAD_DEFAULT_DATADIR="/var/lib/litbia/.litbia"
+else
+	LITBIAD_DEFAULT_DATADIR="/var/lib/litbiad"
+fi
+
+LITBIAD_CONFIGFILE=${LITBIAD_CONFIGFILE:-/etc/litbia/litbia.conf}
+LITBIAD_PIDDIR=${LITBIAD_PIDDIR:-/var/run/litbiad}
+LITBIAD_PIDFILE=${LITBIAD_PIDFILE:-${LITBIAD_PIDDIR}/litbiad.pid}
+LITBIAD_DATADIR=${LITBIAD_DATADIR:-${LITBIAD_DEFAULT_DATADIR}}
+LITBIAD_USER=${LITBIAD_USER:-${LITBIA_USER:-litbia}}
+LITBIAD_GROUP=${LITBIAD_GROUP:-litbia}
+LITBIAD_BIN=${LITBIAD_BIN:-/usr/bin/litbiad}
+LITBIAD_NICE=${LITBIAD_NICE:-${NICELEVEL:-0}}
+LITBIAD_OPTS="${LITBIAD_OPTS:-${LITBIA_OPTS}}"
+
+name="LitBia Core Daemon"
+description="LitBia cryptocurrency P2P network daemon"
+
+command="/usr/bin/litbiad"
+command_args="-pid=\"${LITBIAD_PIDFILE}\" \
+		-conf=\"${LITBIAD_CONFIGFILE}\" \
+		-datadir=\"${LITBIAD_DATADIR}\" \
+		-daemon \
+		${LITBIAD_OPTS}"
+
+required_files="${LITBIAD_CONFIGFILE}"
+start_stop_daemon_args="-u ${LITBIAD_USER} \
+			-N ${LITBIAD_NICE} -w 2000"
+pidfile="${LITBIAD_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${LITBIAD_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${LITBIAD_USER}:${LITBIAD_GROUP}" \
+	"${LITBIAD_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${LITBIAD_USER}:${LITBIAD_GROUP}" \
+	"${LITBIAD_PIDDIR}"
+
+	checkpath -f \
+	-o ${LITBIAD_USER}:${LITBIAD_GROUP} \
+	-m 0660 \
+	${LITBIAD_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${LITBIAD_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run litbiad."
+		eerror "The setting must appear in ${LITBIAD_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"LitBia Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}
